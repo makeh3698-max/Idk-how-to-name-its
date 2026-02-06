@@ -1,0 +1,38 @@
+name: Tailscale-Link-RDP
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: 1. Download & Install Tailscale
+        run: |
+          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
+          Start-Process -FilePath "tailscale-setup.exe" -ArgumentList "/quiet" -Wait
+        shell: powershell
+
+      - name: 2. Jalankan Tailscale & Generate Link Login
+        run: |
+          # Menambahkan Tailscale ke Path agar bisa dipanggil
+          $env:Path += ";C:\Program Files\Tailscale"
+          
+          # Menjalankan tailscale tanpa key, ini akan memunculkan URL di logs
+          Write-Host "========================================================"
+          Write-Host "TUNGGU! Cek log di bawah ini untuk Link Login Tailscale."
+          Write-Host "Salin link (https://login.tailscale.com/...) ke browser kamu."
+          Write-Host "========================================================"
+          
+          # Kita jalankan tailscale up di background, lalu kita baca lognya
+          Start-Process -FilePath "tailscale" -ArgumentList "up" -NoNewWindow
+          
+          # Loop agar workflow tidak langsung mati (tetap hidup untuk RDP)
+          # Batas waktu maksimal GitHub Actions biasanya 6 jam
+          $i = 0
+          while ($i -lt 21600) { 
+            Start-Sleep -Seconds 10
+            $i += 10
+          }
+        shell: powershell
+        
