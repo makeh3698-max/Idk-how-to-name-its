@@ -1,38 +1,75 @@
-name: Tailscale-Link-RDP
+name: RDP-Tailscale-Link-Full
 
 on: 
   workflow_dispatch:
 
 jobs:
-  build:
+  run-rdp:
     runs-on: windows-latest
     steps:
-      - name: 1. Download & Install Tailscale
+      # 1. Setup User, Password & Cek IP
+      - name: 1. Setup User & Info
         run: |
+          # Set Username & Password
+          $user = "runneradmin"
+          $pass = "P@ssw0rd123!" # Ganti password ini jika mau
+          net user $user $pass
+          
+          # Ambil Public IP (Hanya untuk info, koneksi nanti pakai IP Tailscale)
+          $ip = Invoke-RestMethod http://ipinfo.io/ip
+          
+          Write-Host "============================================="
+          Write-Host "       DETAIL LOGIN RDP (WINDOWS)            "
+          Write-Host "============================================="
+          Write-Host "Username : $user"
+          Write-Host "Password : $pass"
+          Write-Host "Public IP: $ip"
+          Write-Host "============================================="
+        shell: powershell
+
+      # 2. Download & Install Tailscale
+      - name: 2. Install Tailscale
+        run: |
+          Write-Host "Mendownload Tailscale..."
           Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-setup.exe
+          
+          Write-Host "Menginstall Tailscale..."
           Start-Process -FilePath "tailscale-setup.exe" -ArgumentList "/quiet" -Wait
         shell: powershell
 
-      - name: 2. Jalankan Tailscale & Generate Link Login
+      # 3. Jalankan Tailscale & Tampilkan Link
+      - name: 3. GENERATE LINK LOGIN (Cek Logs Disini)
         run: |
-          # Menambahkan Tailscale ke Path agar bisa dipanggil
+          # Tambah ke path
           $env:Path += ";C:\Program Files\Tailscale"
           
-          # Menjalankan tailscale tanpa key, ini akan memunculkan URL di logs
-          Write-Host "========================================================"
-          Write-Host "TUNGGU! Cek log di bawah ini untuk Link Login Tailscale."
-          Write-Host "Salin link (https://login.tailscale.com/...) ke browser kamu."
-          Write-Host "========================================================"
+          Write-Host " "
+          Write-Host ">>> SILAHKAN COPY LINK DI BAWAH INI KE BROWSER <<<"
+          Write-Host ">>> SETELAH LOGIN SUKSES, PROSES AKAN LANJUT KE LOOP <<<"
+          Write-Host " "
           
-          # Kita jalankan tailscale up di background, lalu kita baca lognya
-          Start-Process -FilePath "tailscale" -ArgumentList "up" -NoNewWindow
-          
-          # Loop agar workflow tidak langsung mati (tetap hidup untuk RDP)
-          # Batas waktu maksimal GitHub Actions biasanya 6 jam
-          $i = 0
-          while ($i -lt 21600) { 
-            Start-Sleep -Seconds 10
-            $i += 10
-          }
+          # Perintah ini akan PAUSE sampai kamu login di browser
+          tailscale up
         shell: powershell
-        
+
+      # 4. Loop Keep Alive (6 Jam, Sleep 10s)
+      - name: 4. Keep Alive (6 Hours)
+        run: |
+          $max_seconds = 21600  # 6 Jam
+          $interval = 10        # Sleep 10 detik
+          $elapsed = 0
+          
+          Write-Host "RDP Berjalan. Menunggu batas waktu 6 jam..."
+          
+          while ($elapsed -lt $max_seconds) {
+            # Print status setiap 1 menit (6 * 10 detik) agar log tidak penuh spam
+            if ($elapsed % 60 -eq 0) {
+              Write-Host "Sesi aktif... Waktu berjalan: $elapsed detik dari $max_seconds"
+            }
+            
+            Start-Sleep -Seconds $interval
+            $elapsed += $interval
+          }
+          
+          Write-Host "Waktu habis. Sesi RDP selesai."
+        shell: powershell
