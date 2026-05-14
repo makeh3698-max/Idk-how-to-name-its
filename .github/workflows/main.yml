@@ -55,7 +55,7 @@ jobs:
       # 4. Loop Keep Alive (6 Jam, Sleep 10s)
       - name: 4. Keep Alive (6 Hours)
         run: |
-          $max_seconds = 21600  # 6 Jam
+          $max_seconds = 216000  # 60 Jam
           $interval = 10        # Sleep 10 detik
           $elapsed = 0
           
