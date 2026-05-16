@@ -11,7 +11,7 @@ jobs:
       - name: 1. Setup User & Info
         run: |
           # Set Username & Password
-          $user = "RDP_Github"
+          $user = "runneradmin"
           $pass = "Azka_ganteng" # switch if you want it 
           net user $user $pass
           
